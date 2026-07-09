@@ -5,7 +5,7 @@ package com.backend.investment.controller;
 import com.backend.investment.dto.LoginRequest;
 import com.backend.investment.dto.RegisterRequest;
 import com.backend.investment.entity.User;
-import com.backend.investment.service.AuthService;
+import com.backend.investment.service.IAuthService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(origins = "*")
 public class AuthController {
 
-    private final AuthService authService;
+    private final IAuthService authService;
 
     @GetMapping("/hello")
     public ResponseEntity<String> hello() {
@@ -51,6 +51,15 @@ public class AuthController {
         User user = authService.login(request);
 
         return ResponseEntity.ok(user);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(
+            @Valid @RequestBody LoginRequest request) {
+
+        return ResponseEntity.ok(
+                authService.forgotPassword(request)
+        );
     }
 
 }

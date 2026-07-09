@@ -4,9 +4,10 @@ import com.backend.investment.dto.LoginRequest;
 import com.backend.investment.dto.RegisterRequest;
 import com.backend.investment.entity.User;
 
-public interface AuthService {
+public interface IAuthService {
 
     String register(RegisterRequest request);
     User login(LoginRequest request);
+    String forgotPassword(LoginRequest request);
 
 }

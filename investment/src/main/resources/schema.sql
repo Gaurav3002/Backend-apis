@@ -1,9 +1,10 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
     phone VARCHAR(15) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     withdraw_password VARCHAR(255) NOT NULL,
     referral_code VARCHAR(50),
+    referred_by BIGINT,
     balance NUMERIC(15,2) NOT NULL DEFAULT 0,
     total_income NUMERIC(15,2) NOT NULL DEFAULT 0,
     total_recharge NUMERIC(15,2) NOT NULL DEFAULT 0,
@@ -19,7 +20,7 @@ CREATE TABLE users (
 );
 
 
-CREATE TABLE recharge_history (
+CREATE TABLE IF NOT EXISTS recharge_history (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     amount NUMERIC(15,2) NOT NULL,
@@ -33,7 +34,7 @@ CREATE TABLE recharge_history (
 
 );
 
-CREATE TABLE withdraw_history (
+CREATE TABLE IF NOT EXISTS withdraw_history (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     amount NUMERIC(15,2) NOT NULL,
@@ -46,7 +47,7 @@ CREATE TABLE withdraw_history (
 
 );
 
-CREATE TABLE plan_master (
+CREATE TABLE IF NOT EXISTS plan_master (
     id BIGSERIAL PRIMARY KEY,
     plan_name VARCHAR(100) NOT NULL,
     description TEXT,
@@ -55,7 +56,7 @@ CREATE TABLE plan_master (
 
 );
 
-CREATE TABLE product_master (
+CREATE TABLE IF NOT EXISTS product_master (
     id BIGSERIAL PRIMARY KEY,
     plan_id BIGINT NOT NULL,
     product_name VARCHAR(150) NOT NULL,
@@ -70,7 +71,7 @@ CREATE TABLE product_master (
         REFERENCES plan_master(id)
 );
 
-CREATE TABLE user_investments (
+CREATE TABLE IF NOT EXISTS user_investments (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
@@ -92,7 +93,7 @@ CREATE TABLE user_investments (
 
 );
 
-CREATE TABLE income_history (
+CREATE TABLE IF NOT EXISTS income_history (
 
     id BIGSERIAL PRIMARY KEY,
 
@@ -118,7 +119,7 @@ CREATE TABLE income_history (
 
 );
 
-CREATE TABLE wallet_transactions (
+CREATE TABLE IF NOT EXISTS wallet_transactions (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     transaction_type VARCHAR(30) NOT NULL,
