@@ -1,59 +1,71 @@
 package com.backend.investment.Exception;
 
-import com.backend.investment.common.ApiResponse;
-import com.backend.investment.common.ConstantResponse;
+import com.backend.investment.constants.InvestmentConstants;
+import com.backend.investment.dto.ErrorResponseDto;
+import org.jspecify.annotations.Nullable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @ControllerAdvice
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ApiResponse<Object>> handleBadRequest(
-            BadRequestException ex) {
-
-        ApiResponse<Object> response = new ApiResponse<>();
-
-        response.setSuccess(false);
-        response.setCode(ConstantResponse.BAD_REQUEST);
-        response.setMessage(ex.getMessage());
-        response.setData(null);
-
-        return ResponseEntity.badRequest().body(response);
-
+    @ExceptionHandler(UserAlreadyExistException.class)
+    public ResponseEntity<ErrorResponseDto> handleCustomerAlreadyExist(UserAlreadyExistException exception, WebRequest request){
+        ErrorResponseDto responseDto = new ErrorResponseDto(
+                request.getDescription(false),
+                HttpStatus.BAD_REQUEST,
+                exception.getMessage(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(responseDto,HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleNotFound(
-            ResourceNotFoundException ex) {
-
-        ApiResponse<Object> response = new ApiResponse<>();
-
-        response.setSuccess(false);
-        response.setCode(ConstantResponse.NOT_FOUND);
-        response.setMessage(ex.getMessage());
-        response.setData(null);
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(response);
-
+    public ResponseEntity<ErrorResponseDto> handleResourceNotFound(ResourceNotFoundException exception, WebRequest request){
+        ErrorResponseDto responseDto = new ErrorResponseDto(
+                request.getDescription(false),
+                HttpStatus.NOT_FOUND,
+                exception.getMessage(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(responseDto, HttpStatus.NOT_FOUND);
+    }
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponseDto> handleGlobalException(Exception exception, WebRequest request){
+        ErrorResponseDto responseDto = new ErrorResponseDto(
+                request.getDescription(false),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                exception.getMessage(),
+                LocalDateTime.now()
+        );
+        return new  ResponseEntity<>(responseDto, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handleException(
-            Exception ex) {
+    @Override
+    protected @Nullable ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        Map<String, String> validationError =  new HashMap<>();
+        List<ObjectError> objectErrors = ex.getBindingResult().getAllErrors();
 
-        ApiResponse<Object> response = new ApiResponse<>();
-
-        response.setSuccess(false);
-        response.setCode(ConstantResponse.INTERNAL_SERVER_ERROR);
-        response.setMessage(ex.getMessage());
-        response.setData(null);
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(response);
-
+        objectErrors.forEach((error) ->{
+                    String fieldName =((FieldError)error).getField();
+                    String ValidMsg = error.getDefaultMessage();
+                    validationError.put(fieldName, ValidMsg);
+                }
+        );
+        return new ResponseEntity<>(validationError, HttpStatus.BAD_REQUEST);
     }
 
 }
