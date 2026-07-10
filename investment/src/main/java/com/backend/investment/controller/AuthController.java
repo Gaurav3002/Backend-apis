@@ -4,6 +4,7 @@ package com.backend.investment.controller;
 
 import com.backend.investment.dto.LoginRequest;
 import com.backend.investment.dto.RegisterRequest;
+import com.backend.investment.dto.UserResponseDto;
 import com.backend.investment.entity.User;
 import com.backend.investment.service.IAuthService;
 
@@ -45,10 +46,10 @@ public class AuthController {
      * POST: /api/auth/login
      */
     @PostMapping("/login")
-    public ResponseEntity<User> login(
+    public ResponseEntity<UserResponseDto> login(
             @Valid @RequestBody LoginRequest request) {
 
-        User user = authService.login(request);
+        UserResponseDto user = authService.login(request);
 
         return ResponseEntity.ok(user);
     }

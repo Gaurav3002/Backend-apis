@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 import com.backend.investment.constants.InvestmentConstants;
 import com.backend.investment.dto.LoginRequest;
 import com.backend.investment.dto.RegisterRequest;
+import com.backend.investment.dto.UserResponseDto;
 import com.backend.investment.entity.User;
+import com.backend.investment.mapper.UserMapper;
 import com.backend.investment.repository.UserRepository;
 import com.backend.investment.service.IAuthService;
 
@@ -62,7 +64,7 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
-    public User login(LoginRequest request) {
+    public UserResponseDto login(LoginRequest request) {
 
         if (request.getPhone() == null || request.getPhone().trim().isEmpty()) {
             throw new BadRequestException("Phone Number Required");
@@ -77,7 +79,7 @@ public class AuthServiceImpl implements IAuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BadRequestException(InvestmentConstants.INVALID_LOGIN);
         }
-        return user;
+        return UserMapper.userToUserResponseDto(user);
     }
 
     @Override
