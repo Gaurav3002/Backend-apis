@@ -2,6 +2,8 @@ package com.backend.investment.controller;
 
 import java.util.List;
 
+import com.backend.investment.dto.ApiResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -27,13 +29,14 @@ public class InvestmentController {
     private final InvestmentService investmentService;
 
     @PostMapping("/invest")
-    public ResponseEntity<InvestmentResponseDto> invest(
-            @RequestBody InvestmentRequestDto request){
+    public ResponseEntity<ApiResponse<InvestmentResponseDto>> invest(@Valid @RequestBody InvestmentRequestDto request) {
 
-        return new ResponseEntity<>(
-                investmentService.invest(request),
-                HttpStatus.CREATED);
-
+        InvestmentResponseDto dto = investmentService.invest(request);
+        ApiResponse<InvestmentResponseDto> response = new ApiResponse<>();
+        response.setSuccess(true);
+        response.setMessage("Investment purchased successfully.");
+        response.setData(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("investMentDetails/{userId}")

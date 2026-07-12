@@ -28,11 +28,8 @@ import lombok.RequiredArgsConstructor;
 public class InvestmentServiceImpl implements InvestmentService {
 
     private final UserRepository userRepository;
-
     private final ProductRepository productRepository;
-
     private final UserInvestmentRepository investmentRepository;
-
     private final WalletTransactionRepository walletRepository;
 
     @Override
@@ -48,51 +45,34 @@ public class InvestmentServiceImpl implements InvestmentService {
                 .orElseThrow(() ->
                 new ResourceNotFoundException("Investment", "ProductId", request.getProductId().toString())
             );
-
+        if (!"ACTIVE".equalsIgnoreCase(product.getStatus())) {
+            throw new BadRequestException("This investment plan is not available.");
+        }
         if(user.getBalance().compareTo(product.getInvestmentAmount())<0){
 
             throw new BadRequestException("Insufficient wallet balance.");
 
         }
-
         BigDecimal opening=user.getBalance();
-
         BigDecimal closing=opening.subtract(product.getInvestmentAmount());
-
         user.setBalance(closing);
-
         userRepository.save(user);
-
         UserInvestment investment=new UserInvestment();
-
         investment.setUser(user);
-
         investment.setProduct(product);
-
         investment.setInvestmentAmount(product.getInvestmentAmount());
-
         investment.setDailyIncome(product.getDailyIncome());
-
         investment.setDurationDays(product.getDurationDays());
-
-        investment.setStartDate(LocalDate.now());
-
-        investment.setEndDate(
-                LocalDate.now().plusDays(product.getDurationDays())
-        );
-
+        LocalDate today = LocalDate.now();
+        investment.setStartDate(today);
+        investment.setEndDate(today.plusDays(product.getDurationDays()));
         investment.setStatus("ACTIVE");
-
         investment=investmentRepository.save(investment);
 
         WalletTransaction wallet=new WalletTransaction();
-
         wallet.setUser(user);
-
         wallet.setTransactionType("INVESTMENT");
-
         wallet.setAmount(product.getInvestmentAmount());
-
         wallet.setOpeningBalance(opening);
 
         wallet.setClosingBalance(closing);
@@ -106,7 +86,6 @@ public class InvestmentServiceImpl implements InvestmentService {
         walletRepository.save(wallet);
 
         InvestmentResponseDto dto=new InvestmentResponseDto();
-
         dto.setInvestmentId(investment.getId());
 
         dto.setUserId(user.getId());
