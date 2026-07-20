@@ -12,11 +12,9 @@ public class UserMapper {
      * Entity -> DTO
      */
     public static UserResponseDto userToUserResponseDto(User user) {
-
         if (user == null) {
             return null;
         }
-
         UserResponseDto dto = new UserResponseDto();
 
         dto.setId(user.getId());
@@ -27,9 +25,11 @@ public class UserMapper {
         dto.setTotalRecharge(user.getTotalRecharge());
         dto.setTotalWithdraw(user.getTotalWithdraw());
         dto.setStatus(user.getStatus());
-        dto.setLocation(user.getLocation());
-        dto.setIpAddress(user.getIp_address());
-
+        dto.setCreatedOn(user.getCreatedOn());
+        dto.setAccountHolderName(user.getAccountHolderName());
+        dto.setAccountNumber(user.getAccountNumber());
+        dto.setBankName(user.getBankName());
+        dto.setIfscCode(user.getIfscCode());
         return dto;
     }
 
@@ -54,7 +54,10 @@ public class UserMapper {
         user.setStatus(dto.getStatus());
         user.setLocation(dto.getLocation());
         user.setIp_address(dto.getIpAddress());
-
+        dto.setAccountHolderName(user.getAccountHolderName());
+        dto.setAccountNumber(user.getAccountNumber());
+        dto.setIfscCode(user.getIfscCode());
+        dto.setBankName(user.getBankName());
         return user;
     }
 

@@ -27,131 +27,30 @@ public class RechargeServiceImpl implements IRechargeService {
 
     private final RechargeRepository rechargeRepository;
 
-    private final UserRepository userRepository;
-
-    private final WalletTransactionRepository walletTransactionRepository;
-
-    @Override
-    @Transactional
-    public RechargeResponseDto rechargeWallet(RechargeRequestDto request) {
-
-        if (request.getUserId() == null) {
-            throw new BadRequestException("User Id is mandatory.");
-        }
-
-        if (request.getAmount() == null ||
-                request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BadRequestException("Recharge amount should be greater than zero.");
-        }
-
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() ->
-                new ResourceNotFoundException("Rechage", "User", request.getUserId().toString())
-            );
-
-        RechargeHistory recharge = new RechargeHistory();
-
-        recharge.setUser(user);
-        recharge.setAmount(request.getAmount());
-        recharge.setPaymentMethod(request.getPaymentMethod());
-        recharge.setTransactionId(request.getTransactionId());
-        recharge.setStatus("SUCCESS");
-
-        recharge = rechargeRepository.save(recharge);
-
-        //-----------------------------------------
-        // Update Wallet Balance
-        //-----------------------------------------
-
-        BigDecimal openingBalance = user.getBalance();
-
-        BigDecimal closingBalance =
-                openingBalance.add(request.getAmount());
-
-        user.setBalance(closingBalance);
-
-        user.setTotalRecharge(
-                user.getTotalRecharge().add(request.getAmount())
-        );
-
-        userRepository.save(user);
-
-        //-----------------------------------------
-        // Wallet Transaction Entry
-        //-----------------------------------------
-
-        WalletTransaction wallet = new WalletTransaction();
-
-        wallet.setUser(user);
-
-        wallet.setTransactionType("RECHARGE");
-
-        wallet.setAmount(request.getAmount());
-
-        wallet.setOpeningBalance(openingBalance);
-
-        wallet.setClosingBalance(closingBalance);
-
-        wallet.setReferenceId(recharge.getId());
-
-        wallet.setReferenceType("RECHARGE");
-
-        wallet.setRemarks("Wallet Recharge Successful");
-
-        walletTransactionRepository.save(wallet);
-
-        //-----------------------------------------
-        // Response
-        //-----------------------------------------
-
-        RechargeResponseDto response = new RechargeResponseDto();
-
-        response.setId(recharge.getId());
-
-        response.setUserId(user.getId());
-
-        response.setAmount(recharge.getAmount());
-
-        response.setPaymentMethod(recharge.getPaymentMethod());
-
-        response.setTransactionId(recharge.getTransactionId());
-
-        response.setStatus(recharge.getStatus());
-
-        response.setCreatedOn(recharge.getCreatedOn());
-
-        return response;
-
-    }
-
     @Override
     public List<RechargeResponseDto> rechargeHistory(Long userId) {
 
-        List<RechargeHistory> list =
-                rechargeRepository.findByUserId(userId);
+        return rechargeRepository
+                .findByUserIdAndStatusOrderByCreatedOnDesc(
+                        userId,
+                        "SUCCESS"
+                )
+                .stream()
+                .map(recharge -> {
 
-        return list.stream().map(recharge -> {
+                    RechargeResponseDto dto = new RechargeResponseDto();
 
-            RechargeResponseDto dto = new RechargeResponseDto();
+                    dto.setId(recharge.getId());
+                    dto.setUserId(recharge.getUser().getId());
+                    dto.setAmount(recharge.getAmount());
+                    dto.setPaymentMethod(recharge.getPaymentMethod());
+                    dto.setTransactionId(recharge.getTransactionId());
+                    dto.setStatus(recharge.getStatus());
+                    dto.setCreatedOn(recharge.getCreatedOn());
 
-            dto.setId(recharge.getId());
-
-            dto.setUserId(recharge.getUser().getId());
-
-            dto.setAmount(recharge.getAmount());
-
-            dto.setPaymentMethod(recharge.getPaymentMethod());
-
-            dto.setTransactionId(recharge.getTransactionId());
-
-            dto.setStatus(recharge.getStatus());
-
-            dto.setCreatedOn(recharge.getCreatedOn());
-
-            return dto;
-
-        }).collect(Collectors.toList());
-
+                    return dto;
+                })
+                .toList();
     }
 
 }

@@ -1,24 +1,48 @@
 CREATE TABLE IF NOT EXISTS users (
-    id BIGSERIAL PRIMARY KEY,
-    phone VARCHAR(15) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    withdraw_password VARCHAR(255) NOT NULL,
-    referral_code VARCHAR(50),
-    referred_by BIGINT,
-    balance NUMERIC(15,2) NOT NULL DEFAULT 0,
-    total_income NUMERIC(15,2) NOT NULL DEFAULT 0,
-    total_recharge NUMERIC(15,2) NOT NULL DEFAULT 0,
-    total_withdraw NUMERIC(15,2) NOT NULL DEFAULT 0,
-    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-    ip_address VARCHAR(100),
-    location VARCHAR(255),
-    created_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    CONSTRAINT fk_users_referred_by
-        FOREIGN KEY (referred_by)
-        REFERENCES users(id)
-);
 
+    id BIGSERIAL PRIMARY KEY,
+
+    phone VARCHAR(15) NOT NULL UNIQUE,
+
+    password VARCHAR(255) NOT NULL,
+
+    withdraw_password VARCHAR(255) NOT NULL,
+
+    referral_code VARCHAR(50),
+
+    referred_by BIGINT,
+
+    balance NUMERIC(15,2) NOT NULL DEFAULT 0,
+
+    total_income NUMERIC(15,2) NOT NULL DEFAULT 0,
+
+    total_recharge NUMERIC(15,2) NOT NULL DEFAULT 0,
+
+    total_withdraw NUMERIC(15,2) NOT NULL DEFAULT 0,
+
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+
+    ip_address VARCHAR(100),
+
+    location VARCHAR(255),
+
+    -- Bank Details
+
+    account_holder_name VARCHAR(100),
+
+    account_number VARCHAR(50),
+
+    ifsc_code VARCHAR(20),
+
+    bank_name VARCHAR(100),
+
+    created_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_users_referred_by
+        FOREIGN KEY(referred_by)
+        REFERENCES users(id)
+
+);
 
 CREATE TABLE IF NOT EXISTS recharge_history (
     id BIGSERIAL PRIMARY KEY,
@@ -35,14 +59,39 @@ CREATE TABLE IF NOT EXISTS recharge_history (
 );
 
 CREATE TABLE IF NOT EXISTS withdraw_history (
+
     id BIGSERIAL PRIMARY KEY,
+
     user_id BIGINT NOT NULL,
-    amount NUMERIC(15,2) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'SUCCESS',
+
+    -- Amount entered by user
+    requested_amount NUMERIC(15,2) NOT NULL,
+
+    -- 10% Fee
+    service_fee NUMERIC(15,2) NOT NULL DEFAULT 0,
+
+    -- Final amount user receives
+    payable_amount NUMERIC(15,2) NOT NULL,
+
+    -- ACCOUNT / MANUAL
+    withdraw_type VARCHAR(20) NOT NULL,
+
+    -- UPI / USDT
+    payment_method VARCHAR(20),
+
+    -- UPI ID / Wallet Address
+    account_details VARCHAR(255),
+
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+
     remarks TEXT,
-    created_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    approved_on TIMESTAMP,
+
     CONSTRAINT fk_withdraw_user
-        FOREIGN KEY (user_id)
+        FOREIGN KEY(user_id)
         REFERENCES users(id)
 
 );
@@ -136,3 +185,25 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
 
 );
 
+CREATE TABLE IF NOT EXISTS payment_requests (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    amount NUMERIC(15,2) NOT NULL,
+    currency VARCHAR(10) DEFAULT 'USD',
+    transaction_id VARCHAR(100) NOT NULL,
+    payment_method VARCHAR(30),
+    screenshot_url TEXT,
+    status VARCHAR(20) DEFAULT 'PENDING',
+    admin_remarks TEXT,
+    created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    verified_on TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+CREATE TABLE IF NOT EXISTS  admins
+(
+    id BIGSERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(30) DEFAULT 'ADMIN',
+    created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

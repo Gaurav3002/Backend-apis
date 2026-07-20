@@ -43,6 +43,18 @@ public class User {
 
     @Column(name="location")
     private String location;
+
+    @Column(name = "account_holder_name")
+    private String accountHolderName;
+
+    @Column(name = "account_number")
+    private String accountNumber;
+
+    @Column(name = "ifsc_code")
+    private String ifscCode;
+
+    @Column(name = "bank_name")
+    private String bankName;
     
     @Column(name="created_on")
     private LocalDateTime createdOn = LocalDateTime.now();

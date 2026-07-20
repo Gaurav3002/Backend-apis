@@ -1,6 +1,7 @@
 package com.backend.investment.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import lombok.Data;
 
@@ -17,4 +18,12 @@ public class UserResponseDto {
     private String status;
     private String location;
     private String ipAddress;
+    private String accountHolderName;
+
+    private String accountNumber;
+
+    private String ifscCode;
+
+    private String bankName;
+    private LocalDateTime createdOn;
 }

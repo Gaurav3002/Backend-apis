@@ -1,9 +1,11 @@
 package com.backend.investment.controller;
 
+import com.backend.investment.dto.BankAccountDto;
 import com.backend.investment.dto.UserResponseDto;
 import com.backend.investment.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -14,11 +16,22 @@ public class UserController {
 
     private final IUserService userService;
 
-    @GetMapping("/{id}")
-    public ResponseEntity<UserResponseDto> getUserById(@PathVariable Long id) {
+    @GetMapping("/me")
+    public ResponseEntity<UserResponseDto> getProfile(
+            Authentication authentication) {
 
-        UserResponseDto user = userService.getUserById(id);
+        String phone = authentication.getName();
 
+        UserResponseDto user =
+                userService.getLoggedInUser(phone);
         return ResponseEntity.ok(user);
+    }
+
+    @PostMapping("/bank-account")
+    public ResponseEntity<UserResponseDto> saveBankAccount(
+            Authentication authentication,
+            @RequestBody BankAccountDto dto){
+        return ResponseEntity.ok(userService.saveBankAccount(authentication.getName(), dto));
+
     }
 }
