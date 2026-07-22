@@ -2,6 +2,7 @@ package com.backend.investment.service.impl;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.backend.investment.Exception.BadRequestException;
 import com.backend.investment.Exception.ResourceNotFoundException;
@@ -20,6 +21,7 @@ import com.backend.investment.repository.UserRepository;
 import com.backend.investment.service.IAuthService;
 
 import lombok.RequiredArgsConstructor;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +50,7 @@ public class AuthServiceImpl implements IAuthService {
             throw new BadRequestException("User Already Exist!");
         }
         User user = new User();
+        user.setId(generateRandomUserId());
         user.setPhone(request.getPhone().trim());
         user.setPassword(
                 passwordEncoder.encode(request.getPassword())
@@ -121,5 +124,19 @@ public class AuthServiceImpl implements IAuthService {
         userRepository.save(user);
 
         return "Password updated successfully.";
+    }
+
+
+    private Long generateRandomUserId() {
+
+        Long id;
+
+        do {
+
+            id = (long) ThreadLocalRandom.current().nextInt(1000, 10000);
+
+        } while (userRepository.existsById(id));
+
+        return id;
     }
 }

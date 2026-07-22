@@ -11,15 +11,20 @@ public class WithdrawRequestDto {
 
     private Long userId;
 
+    /**
+     * Amount entered by user
+     * INR if Bank withdrawal
+     * USDT if Crypto withdrawal
+     */
     private BigDecimal amount;
 
-    // ACCOUNT or MANUAL
+    // ACCOUNT / MANUAL
     private String withdrawType;
 
-    // UPI / USDT
+    // BANK / UPI / USDT
     private String paymentMethod;
 
-    // Wallet Address / UPI Id
+    // Wallet Address / Bank Details
     private String accountDetails;
 
 }

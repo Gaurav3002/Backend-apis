@@ -1,7 +1,6 @@
 package com.backend.investment.controller;
 
-import com.backend.investment.dto.AdminLoginRequest;
-import com.backend.investment.dto.AdminLoginResponse;
+import com.backend.investment.dto.*;
 import com.backend.investment.entity.PaymentRequest;
 import com.backend.investment.entity.WithdrawHistory;
 import com.backend.investment.service.IAdminService;
@@ -24,8 +23,11 @@ public class AdminAuthController {
         );
     }
     @GetMapping("/payments/pending")
-    public ResponseEntity<List<PaymentRequest>> getPendingRechargeRequests() {
-        return ResponseEntity.ok(adminService.getPendingRechargeRequests());
+    public ResponseEntity<List<PendingRechargeDto>> getPendingRechargeRequests() {
+
+        return ResponseEntity.ok(
+                adminService.getPendingRechargeRequests()
+        );
     }
     @PostMapping("/payments/{id}/approve")
     public ResponseEntity<String> approve(@PathVariable Long id){
@@ -40,7 +42,7 @@ public class AdminAuthController {
     }
 
     @GetMapping("/withdraw/pending")
-    public ResponseEntity<List<WithdrawHistory>> getPendingWithdrawRequests(){
+    public ResponseEntity<List<PendingWithdrawDto>> getPendingWithdrawRequests(){
 
         return ResponseEntity.ok(
                 adminService.getPendingWithdrawRequests()
@@ -68,6 +70,13 @@ public class AdminAuthController {
 
     }
 
+    @GetMapping("/daily-income")
+    public ResponseEntity<List<DailyIncomeDetailsDto>> getDailyIncomeDetails() {
+
+        return ResponseEntity.ok(
+                adminService.getDailyIncomeDetails()
+        );
+    }
 
 
 

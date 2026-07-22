@@ -20,22 +20,37 @@ public class WithdrawHistory {
     private Long id;
 
     /**
-     * User who submitted the withdrawal request
+     * User
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     /**
-     * Withdrawal Amount
+     * Amount deducted from wallet (USDT)
      */
-    @Column(name = "requested_amount", nullable = false)
-    private BigDecimal requestedAmount;
+    @Column(name = "requested_amount_usdt", nullable = false, precision = 15, scale = 2)
+    private BigDecimal requestedAmountUsdt;
 
-    @Column(name = "service_fee", nullable = false)
+    /**
+     * Equivalent INR
+     */
+    @Column(name = "requested_amount_inr", nullable = false, precision = 15, scale = 2)
+    private BigDecimal requestedAmountInr;
+
+    /**
+     * Service Fee
+     * Stored in same currency as payable amount
+     */
+    @Column(name = "service_fee", nullable = false, precision = 15, scale = 2)
     private BigDecimal serviceFee;
 
-    @Column(name = "payable_amount", nullable = false)
+    /**
+     * Final amount to send
+     * INR for Bank
+     * USDT for Crypto
+     */
+    @Column(name = "payable_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal payableAmount;
 
     /**
@@ -45,16 +60,23 @@ public class WithdrawHistory {
     private String withdrawType;
 
     /**
-     * UPI / USDT
+     * BANK / UPI / USDT
      */
     @Column(name = "payment_method", length = 20)
     private String paymentMethod;
 
     /**
-     * UPI ID or USDT Wallet Address
+     * Bank details / Wallet address
      */
-    @Column(name = "account_details", length = 255)
+    @Column(name = "account_details", length = 500)
     private String accountDetails;
+
+    /**
+     * Currency user receives
+     * INR / USDT
+     */
+    @Column(name = "currency", nullable = false, length = 10)
+    private String currency;
 
     /**
      * PENDING / APPROVED / REJECTED
@@ -62,21 +84,12 @@ public class WithdrawHistory {
     @Column(nullable = false, length = 20)
     private String status;
 
-    /**
-     * Admin Remarks
-     */
     @Column(columnDefinition = "TEXT")
     private String remarks;
 
-    /**
-     * Request Creation Time
-     */
     @Column(name = "created_on")
     private LocalDateTime createdOn;
 
-    /**
-     * Approval Time
-     */
     @Column(name = "approved_on")
     private LocalDateTime approvedOn;
 

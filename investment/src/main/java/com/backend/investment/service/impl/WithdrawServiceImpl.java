@@ -1,5 +1,6 @@
 package com.backend.investment.service.impl;
 
+import com.backend.investment.constants.CurrencyUtil;
 import com.backend.investment.dto.WithdrawRequestDto;
 import com.backend.investment.dto.WithdrawResponseDto;
 import com.backend.investment.entity.User;
@@ -21,43 +22,65 @@ public class WithdrawServiceImpl implements IWithdrawService {
 
     private final WithdrawRepository withdrawRepository;
     private final UserRepository userRepository;
+    private final CurrencyUtil currencyUtil;
 
     @Override
     @Transactional
     public WithdrawResponseDto requestWithdraw(WithdrawRequestDto request) {
 
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
 
-        if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Invalid Amount");
+        if (request.getAmount() == null
+                || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new RuntimeException(
+                    "Invalid withdraw amount.");
+
         }
 
-        if (user.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new RuntimeException("Insufficient Balance");
-        }
-
-        BigDecimal requestedAmount = request.getAmount();
-
-        BigDecimal serviceFee = requestedAmount
-                .multiply(BigDecimal.valueOf(0.10));
-
-        BigDecimal payableAmount = requestedAmount.subtract(serviceFee);
+        BigDecimal requestedUsdt;
+        BigDecimal requestedInr;
 
         String paymentMethod;
         String accountDetails;
+        String currency;
 
-        if ("ACCOUNT".equalsIgnoreCase(request.getWithdrawType())) {
+        BigDecimal serviceFee;
+        BigDecimal payableAmount;
 
-            if (user.getAccountHolderName() == null ||
-                    user.getBankName() == null ||
-                    user.getAccountNumber() == null ||
-                    user.getIfscCode() == null) {
+        if ("ACCOUNT".equalsIgnoreCase(
+                request.getWithdrawType())) {
 
-                throw new RuntimeException("Please add your bank account details first.");
+            if (user.getAccountHolderName() == null
+                    || user.getBankName() == null
+                    || user.getAccountNumber() == null
+                    || user.getIfscCode() == null) {
+
+                throw new RuntimeException(
+                        "Please add your bank account details first.");
+
+            }
+
+
+
+            requestedInr = request.getAmount();
+            requestedUsdt =
+                    currencyUtil.inrToUsdt(requestedInr);
+
+            // Wallet is stored in USDT
+            if (user.getBalance()
+                    .compareTo(requestedUsdt) < 0) {
+
+                throw new RuntimeException(
+                        "Insufficient wallet balance.");
+
             }
 
             paymentMethod = "BANK";
+
+            currency = "INR";
 
             accountDetails =
                     "Holder : " + user.getAccountHolderName()
@@ -65,74 +88,249 @@ public class WithdrawServiceImpl implements IWithdrawService {
                             + ", Account : " + user.getAccountNumber()
                             + ", IFSC : " + user.getIfscCode();
 
-        } else if ("MANUAL".equalsIgnoreCase(request.getWithdrawType())) {
+            serviceFee =
+                    requestedInr.multiply(
+                            BigDecimal.valueOf(0.10));
 
-            if (request.getPaymentMethod() == null ||
-                    request.getPaymentMethod().isBlank()) {
-                throw new RuntimeException("Please select payment method.");
+            payableAmount =
+                    requestedInr.subtract(serviceFee);
+
+        }
+
+        else if ("MANUAL".equalsIgnoreCase(
+                request.getWithdrawType())) {
+
+            if (request.getPaymentMethod() == null
+                    || request.getPaymentMethod().isBlank()) {
+
+                throw new RuntimeException(
+                        "Please select payment method.");
+
             }
 
-            if (request.getAccountDetails() == null ||
-                    request.getAccountDetails().isBlank()) {
-                throw new RuntimeException("Please enter account details.");
+            if (request.getAccountDetails() == null
+                    || request.getAccountDetails().isBlank()) {
+
+                throw new RuntimeException(
+                        "Please enter account details.");
+
             }
 
-            paymentMethod = request.getPaymentMethod();
-            accountDetails = request.getAccountDetails();
+            paymentMethod =
+                    request.getPaymentMethod();
 
-        } else {
+            accountDetails =
+                    request.getAccountDetails();
 
-            throw new RuntimeException("Invalid withdraw type.");
+            if ("UPI".equalsIgnoreCase(
+                    paymentMethod)) {
+
+                requestedInr =
+                        request.getAmount();
+
+                requestedUsdt =
+                        currencyUtil.inrToUsdt(
+                                requestedInr);
+
+                if (user.getBalance()
+                        .compareTo(requestedUsdt) < 0) {
+
+                    throw new RuntimeException(
+                            "Insufficient wallet balance.");
+
+                }
+
+                currency = "INR";
+
+                serviceFee =
+                        requestedInr.multiply(
+                                BigDecimal.valueOf(0.10));
+
+                payableAmount =
+                        requestedInr.subtract(
+                                serviceFee);
+
+            }
+
+            else if ("USDT".equalsIgnoreCase(
+                    paymentMethod)) {
+
+                requestedUsdt =
+                        request.getAmount();
+
+                if (user.getBalance()
+                        .compareTo(requestedUsdt) < 0) {
+
+                    throw new RuntimeException(
+                            "Insufficient wallet balance.");
+
+                }
+
+                requestedInr =
+                        currencyUtil.usdtToInr(
+                                requestedUsdt);
+
+                currency = "USDT";
+
+                serviceFee =
+                        requestedUsdt.multiply(
+                                BigDecimal.valueOf(0.10));
+
+                payableAmount =
+                        requestedUsdt.subtract(
+                                serviceFee);
+
+            }
+
+            else {
+
+                throw new RuntimeException(
+                        "Invalid payment method.");
+
+            }
+        }
+
+        else {
+
+            throw new RuntimeException(
+                    "Invalid withdraw type.");
 
         }
 
         WithdrawHistory withdraw = WithdrawHistory.builder()
+
                 .user(user)
-                .requestedAmount(requestedAmount)
+
+                // Amount deducted from wallet (USDT)
+                .requestedAmountUsdt(requestedUsdt)
+
+                // Equivalent INR
+                .requestedAmountInr(requestedInr)
+
+                // Fee (INR for Bank/UPI, USDT for Crypto)
                 .serviceFee(serviceFee)
+
+                // Final payable amount
                 .payableAmount(payableAmount)
+
+                // INR / USDT
+                .currency(currency)
+
+                // ACCOUNT / MANUAL
                 .withdrawType(request.getWithdrawType())
+
+                // BANK / UPI / USDT
                 .paymentMethod(paymentMethod)
+
+                // Bank Details / Wallet Address / UPI
                 .accountDetails(accountDetails)
+
                 .status("PENDING")
+
                 .createdOn(LocalDateTime.now())
+
                 .build();
 
         withdrawRepository.save(withdraw);
 
         return WithdrawResponseDto.builder()
+
                 .id(withdraw.getId())
-                .requestedAmount(withdraw.getRequestedAmount())
-                .serviceFee(withdraw.getServiceFee())
-                .payableAmount(withdraw.getPayableAmount())
-                .withdrawType(withdraw.getWithdrawType())
-                .paymentMethod(withdraw.getPaymentMethod())
-                .accountDetails(withdraw.getAccountDetails())
-                .status(withdraw.getStatus())
-                .createdOn(withdraw.getCreatedOn())
-                .message("Withdraw request submitted successfully.")
+
+                .requestedAmountUsdt(
+                        withdraw.getRequestedAmountUsdt())
+
+                .requestedAmountInr(
+                        withdraw.getRequestedAmountInr())
+
+                .serviceFee(
+                        withdraw.getServiceFee())
+
+                .payableAmount(
+                        withdraw.getPayableAmount())
+
+                .currency(
+                        withdraw.getCurrency())
+
+                .withdrawType(
+                        withdraw.getWithdrawType())
+
+                .paymentMethod(
+                        withdraw.getPaymentMethod())
+
+                .accountDetails(
+                        withdraw.getAccountDetails())
+
+                .status(
+                        withdraw.getStatus())
+
+                .remarks(
+                        withdraw.getRemarks())
+
+                .createdOn(
+                        withdraw.getCreatedOn())
+
+                .message(
+                        "Withdraw request submitted successfully.")
+
                 .build();
+
     }
+
     @Override
     public List<WithdrawResponseDto> withdrawHistory(Long userId) {
-
         return withdrawRepository
+
                 .findByUserIdOrderByCreatedOnDesc(userId)
+
                 .stream()
-                .map(withdraw -> WithdrawResponseDto.builder()
-                        .id(withdraw.getId())
-                        .requestedAmount(withdraw.getRequestedAmount())
-                        .serviceFee(withdraw.getServiceFee())
-                        .payableAmount(withdraw.getPayableAmount())
-                        .withdrawType(withdraw.getWithdrawType())
-                        .paymentMethod(withdraw.getPaymentMethod())
-                        .accountDetails(withdraw.getAccountDetails())
-                        .status(withdraw.getStatus())
-                        .createdOn(withdraw.getCreatedOn())
-                        .build())
+
+                .map(withdraw ->
+
+                        WithdrawResponseDto.builder()
+
+                                .id(
+                                        withdraw.getId())
+
+                                .requestedAmountUsdt(
+                                        withdraw.getRequestedAmountUsdt())
+
+                                .requestedAmountInr(
+                                        withdraw.getRequestedAmountInr())
+
+                                .serviceFee(
+                                        withdraw.getServiceFee())
+
+                                .payableAmount(
+                                        withdraw.getPayableAmount())
+
+                                .currency(
+                                        withdraw.getCurrency())
+
+                                .withdrawType(
+                                        withdraw.getWithdrawType())
+
+                                .paymentMethod(
+                                        withdraw.getPaymentMethod())
+
+                                .accountDetails(
+                                        withdraw.getAccountDetails())
+
+                                .status(
+                                        withdraw.getStatus())
+
+                                .remarks(
+                                        withdraw.getRemarks())
+
+                                .createdOn(
+                                        withdraw.getCreatedOn())
+
+                                .build()
+
+                )
+
                 .toList();
 
     }
-
 
 }

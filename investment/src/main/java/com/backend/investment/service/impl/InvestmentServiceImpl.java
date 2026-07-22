@@ -19,6 +19,7 @@ import com.backend.investment.repository.UserInvestmentRepository;
 import com.backend.investment.repository.UserRepository;
 import com.backend.investment.repository.WalletTransactionRepository;
 import com.backend.investment.service.InvestmentService;
+import com.backend.investment.constants.CurrencyUtil;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -28,64 +29,126 @@ import lombok.RequiredArgsConstructor;
 public class InvestmentServiceImpl implements InvestmentService {
 
     private final UserRepository userRepository;
+
     private final ProductRepository productRepository;
+
     private final UserInvestmentRepository investmentRepository;
+
     private final WalletTransactionRepository walletRepository;
 
     @Override
     @Transactional
     public InvestmentResponseDto invest(InvestmentRequestDto request) {
 
-        User user=userRepository.findById(request.getUserId())
+        User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() ->
-                new ResourceNotFoundException("Investment", "UserId", request.getUserId().toString())
-            );
+                        new ResourceNotFoundException(
+                                "Investment",
+                                "UserId",
+                                request.getUserId().toString()
+                        ));
 
-        Product product=productRepository.findById(request.getProductId())
+        Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() ->
-                new ResourceNotFoundException("Investment", "ProductId", request.getProductId().toString())
-            );
+                        new ResourceNotFoundException(
+                                "Investment",
+                                "ProductId",
+                                request.getProductId().toString()
+                        ));
+
         if (!"ACTIVE".equalsIgnoreCase(product.getStatus())) {
             throw new BadRequestException("This investment plan is not available.");
         }
-        if(user.getBalance().compareTo(product.getInvestmentAmount())<0){
 
-            throw new BadRequestException("Insufficient wallet balance.");
+        /*
+         * Product price is stored in INR.
+         * Convert to USDT before deducting wallet.
+         */
+        BigDecimal investmentUsdt =
+                CurrencyUtil.inrToUsdt(product.getInvestmentAmount());
+
+        if (user.getBalance().compareTo(investmentUsdt) < 0) {
+
+            throw new BadRequestException(
+                    "Insufficient wallet balance."
+            );
 
         }
-        BigDecimal opening=user.getBalance();
-        BigDecimal closing=opening.subtract(product.getInvestmentAmount());
-        user.setBalance(closing);
+
+        BigDecimal openingBalance = user.getBalance();
+
+        BigDecimal closingBalance =
+                openingBalance.subtract(investmentUsdt);
+
+        user.setBalance(closingBalance);
+
         userRepository.save(user);
-        UserInvestment investment=new UserInvestment();
+
+
+        UserInvestment investment = new UserInvestment();
+
         investment.setUser(user);
+
         investment.setProduct(product);
-        investment.setInvestmentAmount(product.getInvestmentAmount());
-        investment.setDailyIncome(product.getDailyIncome());
-        investment.setDurationDays(product.getDurationDays());
+
+        investment.setInvestmentAmount(
+                product.getInvestmentAmount()
+        );
+
+        investment.setDailyIncome(
+                product.getDailyIncome()
+        );
+
+        investment.setDurationDays(
+                product.getDurationDays()
+        );
+
         LocalDate today = LocalDate.now();
+
         investment.setStartDate(today);
-        investment.setEndDate(today.plusDays(product.getDurationDays()));
+
+        investment.setEndDate(
+                today.plusDays(product.getDurationDays())
+        );
+
         investment.setStatus("ACTIVE");
-        investment=investmentRepository.save(investment);
 
-        WalletTransaction wallet=new WalletTransaction();
+        investment = investmentRepository.save(investment);
+
+        /*
+         * Wallet Transaction
+         * Wallet always stores USDT.
+         */
+
+        WalletTransaction wallet = new WalletTransaction();
+
         wallet.setUser(user);
-        wallet.setTransactionType("INVESTMENT");
-        wallet.setAmount(product.getInvestmentAmount());
-        wallet.setOpeningBalance(opening);
 
-        wallet.setClosingBalance(closing);
+        wallet.setTransactionType("INVESTMENT");
+
+        wallet.setAmount(investmentUsdt);
+
+        wallet.setOpeningBalance(openingBalance);
+
+        wallet.setClosingBalance(closingBalance);
 
         wallet.setReferenceId(investment.getId());
 
         wallet.setReferenceType("INVESTMENT");
 
-        wallet.setRemarks("Investment Purchase");
+        wallet.setRemarks(
+                "Investment Purchase ("
+                        + product.getInvestmentAmount()
+                        + " INR = "
+                        + investmentUsdt
+                        + " USDT)"
+        );
 
         walletRepository.save(wallet);
 
-        InvestmentResponseDto dto=new InvestmentResponseDto();
+        InvestmentResponseDto dto =
+                new InvestmentResponseDto();
+
         dto.setInvestmentId(investment.getId());
 
         dto.setUserId(user.getId());
@@ -94,17 +157,33 @@ public class InvestmentServiceImpl implements InvestmentService {
 
         dto.setProductName(product.getProductName());
 
-        dto.setInvestmentAmount(product.getInvestmentAmount());
+        /*
+         * Return INR to frontend.
+         */
 
-        dto.setDailyIncome(product.getDailyIncome());
+        dto.setInvestmentAmount(
+                product.getInvestmentAmount()
+        );
 
-        dto.setDurationDays(product.getDurationDays());
+        dto.setDailyIncome(
+                product.getDailyIncome()
+        );
 
-        dto.setStartDate(investment.getStartDate());
+        dto.setDurationDays(
+                product.getDurationDays()
+        );
 
-        dto.setEndDate(investment.getEndDate());
+        dto.setStartDate(
+                investment.getStartDate()
+        );
 
-        dto.setStatus(investment.getStatus());
+        dto.setEndDate(
+                investment.getEndDate()
+        );
+
+        dto.setStatus(
+                investment.getStatus()
+        );
 
         return dto;
 
@@ -113,31 +192,55 @@ public class InvestmentServiceImpl implements InvestmentService {
     @Override
     public List<InvestmentResponseDto> myInvestments(Long userId) {
 
-        return investmentRepository.findByUserId(userId)
+        return investmentRepository
+                .findByUserId(userId)
                 .stream()
-                .map(i->{
+                .map(investment -> {
 
-                    InvestmentResponseDto dto=new InvestmentResponseDto();
+                    InvestmentResponseDto dto =
+                            new InvestmentResponseDto();
 
-                    dto.setInvestmentId(i.getId());
+                    dto.setInvestmentId(investment.getId());
 
-                    dto.setUserId(i.getUser().getId());
+                    dto.setUserId(
+                            investment.getUser().getId()
+                    );
 
-                    dto.setProductId(i.getProduct().getId());
+                    dto.setProductId(
+                            investment.getProduct().getId()
+                    );
 
-                    dto.setProductName(i.getProduct().getProductName());
+                    dto.setProductName(
+                            investment.getProduct().getProductName()
+                    );
 
-                    dto.setInvestmentAmount(i.getInvestmentAmount());
+                    /*
+                     * Investment remains INR.
+                     */
 
-                    dto.setDailyIncome(i.getDailyIncome());
+                    dto.setInvestmentAmount(
+                            investment.getInvestmentAmount()
+                    );
 
-                    dto.setDurationDays(i.getDurationDays());
+                    dto.setDailyIncome(
+                            investment.getDailyIncome()
+                    );
 
-                    dto.setStartDate(i.getStartDate());
+                    dto.setDurationDays(
+                            investment.getDurationDays()
+                    );
 
-                    dto.setEndDate(i.getEndDate());
+                    dto.setStartDate(
+                            investment.getStartDate()
+                    );
 
-                    dto.setStatus(i.getStatus());
+                    dto.setEndDate(
+                            investment.getEndDate()
+                    );
+
+                    dto.setStatus(
+                            investment.getStatus()
+                    );
 
                     return dto;
 

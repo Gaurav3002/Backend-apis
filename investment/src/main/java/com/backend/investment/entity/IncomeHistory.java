@@ -20,11 +20,11 @@ public class IncomeHistory {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name="investment_id")
+    @JoinColumn(name = "investment_id")
     private UserInvestment investment;
 
     @ManyToOne
-    @JoinColumn(name="user_id")
+    @JoinColumn(name = "user_id")
     private User user;
 
     private BigDecimal incomeAmount;
@@ -36,7 +36,7 @@ public class IncomeHistory {
     private LocalDateTime createdOn;
 
     @PrePersist
-    public void prePersist(){
+    public void prePersist() {
         createdOn = LocalDateTime.now();
     }
 

@@ -14,22 +14,51 @@ public class WithdrawResponseDto {
 
     private Long id;
 
-    private BigDecimal requestedAmount;
+    /**
+     * Amount deducted from wallet (USDT)
+     */
+    private BigDecimal requestedAmountUsdt;
 
+    /**
+     * Equivalent INR
+     */
+    private BigDecimal requestedAmountInr;
+
+    /**
+     * Fee
+     * USDT for USDT withdrawal
+     * INR for Bank/UPI withdrawal
+     */
     private BigDecimal serviceFee;
 
+    /**
+     * Final amount user receives
+     */
     private BigDecimal payableAmount;
 
-    // ACCOUNT / MANUAL
+    /**
+     * INR / USDT
+     */
+    private String currency;
+
+    /**
+     * ACCOUNT / MANUAL
+     */
     private String withdrawType;
 
-    // UPI / USDT
+    /**
+     * BANK / UPI / USDT
+     */
     private String paymentMethod;
 
-    // UPI ID / Wallet Address
+    /**
+     * Wallet Address / UPI / Bank Details
+     */
     private String accountDetails;
 
-    // PENDING / APPROVED / REJECTED
+    /**
+     * PENDING / APPROVED / REJECTED
+     */
     private String status;
 
     private String remarks;
@@ -37,5 +66,4 @@ public class WithdrawResponseDto {
     private LocalDateTime createdOn;
 
     private String message;
-
 }

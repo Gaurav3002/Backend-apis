@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS users (
 
-    id BIGSERIAL PRIMARY KEY,
+   id BIGINT PRIMARY KEY,
 
     phone VARCHAR(15) NOT NULL UNIQUE,
 
@@ -64,23 +64,29 @@ CREATE TABLE IF NOT EXISTS withdraw_history (
 
     user_id BIGINT NOT NULL,
 
-    -- Amount entered by user
-    requested_amount NUMERIC(15,2) NOT NULL,
+    -- Wallet deduction (USDT)
+    requested_amount_usdt NUMERIC(15,2) NOT NULL,
 
-    -- 10% Fee
+    -- Equivalent INR
+    requested_amount_inr NUMERIC(15,2) NOT NULL,
+
+    -- Service Fee
     service_fee NUMERIC(15,2) NOT NULL DEFAULT 0,
 
-    -- Final amount user receives
+    -- Final amount to send
     payable_amount NUMERIC(15,2) NOT NULL,
 
     -- ACCOUNT / MANUAL
     withdraw_type VARCHAR(20) NOT NULL,
 
-    -- UPI / USDT
+    -- BANK / UPI / USDT
     payment_method VARCHAR(20),
 
-    -- UPI ID / Wallet Address
-    account_details VARCHAR(255),
+    -- Bank Details / Wallet Address
+    account_details VARCHAR(500),
+
+    -- INR / USDT
+    currency VARCHAR(10) NOT NULL,
 
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
 
