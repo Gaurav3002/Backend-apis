@@ -3,6 +3,7 @@
 package com.backend.investment.controller;
 
 import com.backend.investment.dto.LoginRequest;
+import com.backend.investment.dto.LoginResponse;
 import com.backend.investment.dto.RegisterRequest;
 import com.backend.investment.dto.UserResponseDto;
 import com.backend.investment.entity.User;
@@ -46,12 +47,8 @@ public class AuthController {
      * POST: /api/auth/login
      */
     @PostMapping("/login")
-    public ResponseEntity<UserResponseDto> login(
-            @Valid @RequestBody LoginRequest request) {
-
-        UserResponseDto user = authService.login(request);
-
-        return ResponseEntity.ok(user);
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/forgot-password")

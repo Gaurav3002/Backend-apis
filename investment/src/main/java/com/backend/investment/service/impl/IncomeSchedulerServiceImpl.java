@@ -8,15 +8,22 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.backend.investment.entity.*;
-import com.backend.investment.repository.*;
+import com.backend.investment.entity.IncomeHistory;
+import com.backend.investment.entity.User;
+import com.backend.investment.entity.UserInvestment;
+import com.backend.investment.entity.WalletTransaction;
+import com.backend.investment.repository.IncomeHistoryRepository;
+import com.backend.investment.repository.UserInvestmentRepository;
+import com.backend.investment.repository.UserRepository;
+import com.backend.investment.repository.WalletTransactionRepository;
 import com.backend.investment.service.IIncomeSchedulerService;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class IncomeSchedulerServiceImpl implements IIncomeSchedulerService {
+public class IncomeSchedulerServiceImpl
+        implements IIncomeSchedulerService {
 
     private final UserInvestmentRepository investmentRepository;
 
@@ -28,87 +35,63 @@ public class IncomeSchedulerServiceImpl implements IIncomeSchedulerService {
 
     @Override
     @Transactional
-    @Scheduled(cron = "0 1 0 * * *")
+    @Scheduled(cron = "0 1 0 * * *") // Every day at 12:01 AM
     public void generateDailyIncome() {
 
-        List<UserInvestment> investments =
-                investmentRepository.findByStatus("ACTIVE");
+        List<UserInvestment> investments = investmentRepository.findByStatus("ACTIVE");
 
         LocalDate today = LocalDate.now();
 
-        for(UserInvestment investment : investments){
-
-            if(today.isAfter(investment.getEndDate())){
-
-                investment.setStatus("COMPLETED");
-
-                investmentRepository.save(investment);
-
+        for (UserInvestment investment : investments) {
+            if (investment.getStartDate().isEqual(today)) {
                 continue;
             }
-
-            if(incomeRepository.existsByInvestmentIdAndIncomeDate(
-                    investment.getId(),today)){
+            if (today.isAfter(investment.getEndDate())) {
+                investment.setStatus("COMPLETED");
+                investmentRepository.save(investment);
+                continue;
+            }
+            if (incomeRepository.existsByInvestmentIdAndIncomeDate(
+                    investment.getId(),
+                    today)) {
 
                 continue;
             }
 
             User user = investment.getUser();
 
-            BigDecimal income = investment.getDailyIncome();
+            BigDecimal dailyIncome = investment.getDailyIncome();
+            if (user.getTotalIncome() == null) {
+                user.setTotalIncome(BigDecimal.ZERO);
+            }
 
-            BigDecimal opening = user.getBalance();
+            if (investment.getTotalIncomeGenerated() == null) {
+                investment.setTotalIncomeGenerated(BigDecimal.ZERO);
+            }
 
-            BigDecimal closing = opening.add(income);
-
-            user.setBalance(closing);
-
-            user.setTotalIncome(
-                    user.getTotalIncome().add(income));
-
+            user.setTotalIncome(user.getTotalIncome().add(dailyIncome));
             userRepository.save(user);
-
-            investment.setTotalIncomeGenerated(
-                    investment.getTotalIncomeGenerated().add(income));
-
+            investment.setTotalIncomeGenerated(investment.getTotalIncomeGenerated().add(dailyIncome));
             investmentRepository.save(investment);
-
             IncomeHistory history = new IncomeHistory();
-
             history.setInvestment(investment);
-
             history.setUser(user);
-
-            history.setIncomeAmount(income);
-
+            history.setIncomeAmount(dailyIncome);
             history.setIncomeDate(today);
-
-            history.setRemarks("Daily Income Credited");
-
+            history.setRemarks("Daily Income Credited (INR)");
             history = incomeRepository.save(history);
 
             WalletTransaction wallet = new WalletTransaction();
-
             wallet.setUser(user);
-
             wallet.setTransactionType("DAILY_INCOME");
+            wallet.setAmount(dailyIncome);
 
-            wallet.setAmount(income);
-
-            wallet.setOpeningBalance(opening);
-
-            wallet.setClosingBalance(closing);
-
+            wallet.setOpeningBalance(user.getBalance());
+            wallet.setClosingBalance(user.getBalance());
             wallet.setReferenceId(history.getId());
-
             wallet.setReferenceType("INCOME");
-
-            wallet.setRemarks("Daily Income");
-
+            wallet.setRemarks("Daily Income Generated (INR). Wallet unchanged.");
             walletRepository.save(wallet);
-
         }
-
     }
-
 }

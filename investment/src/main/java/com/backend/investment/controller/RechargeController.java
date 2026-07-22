@@ -1,16 +1,15 @@
 package com.backend.investment.controller;
 
-import java.util.List;
-
-import org.springframework.http.HttpStatus;
+import com.backend.investment.dto.RechargeResponseDto;
+import com.backend.investment.dto.UserResponseDto;
+import com.backend.investment.service.IRechargeService;
+import com.backend.investment.service.IUserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import com.backend.investment.dto.RechargeRequestDto;
-import com.backend.investment.dto.RechargeResponseDto;
-import com.backend.investment.service.IRechargeService;
-
-import lombok.RequiredArgsConstructor;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/recharge")
@@ -19,22 +18,19 @@ import lombok.RequiredArgsConstructor;
 public class RechargeController {
 
     private final IRechargeService rechargeService;
+    private final IUserService userService;
 
-    @PostMapping
-    public ResponseEntity<RechargeResponseDto> rechargeWallet(
-            @RequestBody RechargeRequestDto request) {
+    @GetMapping("/history")
+    public ResponseEntity<List<RechargeResponseDto>> getRechargeHistory(
+            Authentication authentication) {
 
-        return new ResponseEntity<>(
-                rechargeService.rechargeWallet(request),
-                HttpStatus.CREATED);
-    }
+        String phone = authentication.getName();
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<List<RechargeResponseDto>> history(
-            @PathVariable Long userId) {
+        UserResponseDto user =
+                userService.getLoggedInUser(phone);
 
         return ResponseEntity.ok(
-                rechargeService.rechargeHistory(userId));
+                rechargeService.rechargeHistory(user.getId())
+        );
     }
-
 }

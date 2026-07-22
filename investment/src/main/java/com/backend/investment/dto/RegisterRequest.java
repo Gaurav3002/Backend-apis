@@ -9,5 +9,7 @@ public class RegisterRequest {
     private String password;
     private String withdrawPassword;
     private String referralCode;
+    private String ipAddress;
+    private String location;
 
 }

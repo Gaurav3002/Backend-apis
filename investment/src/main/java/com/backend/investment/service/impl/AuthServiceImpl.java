@@ -2,9 +2,12 @@ package com.backend.investment.service.impl;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.backend.investment.Exception.BadRequestException;
 import com.backend.investment.Exception.ResourceNotFoundException;
+import com.backend.investment.dto.LoginResponse;
+import com.backend.investment.service.JwtService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +21,7 @@ import com.backend.investment.repository.UserRepository;
 import com.backend.investment.service.IAuthService;
 
 import lombok.RequiredArgsConstructor;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +29,7 @@ public class AuthServiceImpl implements IAuthService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @Override
     public String register(RegisterRequest request) {
@@ -45,6 +50,7 @@ public class AuthServiceImpl implements IAuthService {
             throw new BadRequestException("User Already Exist!");
         }
         User user = new User();
+        user.setId(generateRandomUserId());
         user.setPhone(request.getPhone().trim());
         user.setPassword(
                 passwordEncoder.encode(request.getPassword())
@@ -53,18 +59,22 @@ public class AuthServiceImpl implements IAuthService {
                 passwordEncoder.encode(request.getWithdrawPassword())
         );
         user.setReferralCode(request.getReferralCode());
+        user.setIp_address(request.getIpAddress());
+        user.setLocation(request.getLocation());
         user.setBalance(BigDecimal.ZERO);
         user.setTotalIncome(BigDecimal.ZERO);
         user.setTotalRecharge(BigDecimal.ZERO);
         user.setTotalWithdraw(BigDecimal.ZERO);
         user.setStatus("ACTIVE");
         user.setCreatedOn(LocalDateTime.now());
+//        System.out.println("IP = " + request.getIpAddress());
+//        System.out.println("Location = " + request.getLocation());
         userRepository.save(user);
         return InvestmentConstants.MESSAGE_201;
     }
 
     @Override
-    public UserResponseDto login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
 
         if (request.getPhone() == null || request.getPhone().trim().isEmpty()) {
             throw new BadRequestException("Phone Number Required");
@@ -74,12 +84,20 @@ public class AuthServiceImpl implements IAuthService {
         }
         User user = userRepository.findByPhone(request.getPhone().trim())
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Account", "phoneNumber",request.getPhone())
+                        new ResourceNotFoundException(
+                                "Account",
+                                "phoneNumber",
+                                request.getPhone()
+                        )
                 );
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BadRequestException(InvestmentConstants.INVALID_LOGIN);
         }
-        return UserMapper.userToUserResponseDto(user);
+        UserResponseDto userDto = UserMapper.userToUserResponseDto(user);
+        LoginResponse response = new LoginResponse();
+        response.setToken(jwtService.generateToken(user.getPhone()));
+        response.setUser(userDto);
+        return response;
     }
 
     @Override
@@ -106,5 +124,19 @@ public class AuthServiceImpl implements IAuthService {
         userRepository.save(user);
 
         return "Password updated successfully.";
+    }
+
+
+    private Long generateRandomUserId() {
+
+        Long id;
+
+        do {
+
+            id = (long) ThreadLocalRandom.current().nextInt(1000, 10000);
+
+        } while (userRepository.existsById(id));
+
+        return id;
     }
 }

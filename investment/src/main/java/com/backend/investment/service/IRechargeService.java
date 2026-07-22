@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface IRechargeService {
 
-    RechargeResponseDto rechargeWallet(RechargeRequestDto request);
+
 
     List<RechargeResponseDto> rechargeHistory(Long userId);
 

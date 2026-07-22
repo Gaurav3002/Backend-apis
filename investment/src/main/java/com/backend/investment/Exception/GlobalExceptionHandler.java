@@ -83,4 +83,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(responseDto, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(DuplicateTransactionException.class)
+    public ResponseEntity<String> handleDuplicateTransaction(DuplicateTransactionException ex) {
+        return ResponseEntity.badRequest().body(ex.getMessage());
+    }
+
 }

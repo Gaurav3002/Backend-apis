@@ -8,5 +8,9 @@ import java.util.List;
 public interface RechargeRepository extends JpaRepository<RechargeHistory,Long> {
 
     List<RechargeHistory> findByUserId(Long userId);
+    List<RechargeHistory> findByUserIdAndStatusOrderByCreatedOnDesc(
+            Long userId,
+            String status
+    );
 
 }
